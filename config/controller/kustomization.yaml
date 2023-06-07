@@ -7,6 +7,6 @@ namePrefix: local-
 # for Windows test, as it checks the same deployment name should not be deployed to enable Windows
 # IPAM
 images:
-- digest: sha256:b6a951ea4127b100bae4657ed15d92061523565dcb5ada7bad64c63a18766380
+- digest: latest
   name: controller
-  newName: 767520670908.dkr.ecr.us-west-2.amazonaws.com/dev
+  newName: controller

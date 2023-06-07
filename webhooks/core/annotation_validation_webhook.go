@@ -25,6 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -40,8 +41,9 @@ type AnnotationValidator struct {
 	Checker   healthz.Checker
 }
 
-func NewAnnotationValidator(condition condition.Conditions, log logr.Logger, healthzHandler *rcHealthz.HealthzHandler) *AnnotationValidator {
+func NewAnnotationValidator(scheme *runtime.Scheme, condition condition.Conditions, log logr.Logger, healthzHandler *rcHealthz.HealthzHandler) *AnnotationValidator {
 	annotationValidator := &AnnotationValidator{
+		decoder:   admission.NewDecoder(scheme),
 		Condition: condition,
 		Log:       log,
 	}
@@ -151,10 +153,4 @@ func (a *AnnotationValidator) getAnnotationKeysToBeValidated() []string {
 		annotationsToValidate = append(annotationsToValidate, config.ResourceNameIPAddress)
 	}
 	return annotationsToValidate
-}
-
-// InjectDecoder injects the decoder.
-func (a *AnnotationValidator) InjectDecoder(d *admission.Decoder) error {
-	a.decoder = d
-	return nil
 }

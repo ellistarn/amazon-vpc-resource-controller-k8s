@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -48,12 +49,14 @@ type PodMutationWebHook struct {
 }
 
 func NewPodMutationWebHook(
+	scheme *runtime.Scheme,
 	sgpAPI utils.SecurityGroupForPodsAPI,
 	log logr.Logger,
 	condition condition.Conditions,
 	healthzHandler *rcHealthz.HealthzHandler,
 ) *PodMutationWebHook {
 	podWebhook := &PodMutationWebHook{
+		decoder:   admission.NewDecoder(scheme),
 		SGPAPI:    sgpAPI,
 		Log:       log,
 		Condition: condition,

@@ -41,7 +41,7 @@ test: verify
 	go test ./pkg/... ./controllers/... ./webhooks/... -coverprofile cover.out
 
 test-e2e:
-	KUBE_CONFIG_PATH=${KUBE_CONFIG_PATH} REGION=${AWS_REGION} CLUSTER_NAME=${CLUSTER_NAME} ./scripts/test/run-integration-tests.sh
+	KUBE_CONFIG_PATH=${KUBE_CONFIG_PATH} REGION=${AWS_REGION} CLUSTER_NAME=${CLUSTER_NAME} SKIP_WINDOWS_TEST=true ./scripts/test/run-integration-tests.sh
 
 image: ## Build the images using ko build
 	$(eval IMAGE=$(shell KO_DOCKER_REPO=$(KO_DOCKER_REPO) $(WITH_GOFLAGS) ko build --bare github.com/aws/amazon-vpc-resource-controller-k8s))

@@ -54,6 +54,7 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
@@ -201,8 +202,8 @@ func main() {
 	retryPeriod := time.Second * time.Duration(leaderLeaseRetryPeriod)
 
 	// filter cache to subscribe to events from specific resources
-	newCache := cache.BuilderWithOptions(cache.Options{
-		SelectorsByObject: cache.SelectorsByObject{
+	newCache := cache.Options{
+		ByObject: map[client.Object]cache.ByObject{
 			&corev1.ConfigMap{}: {Field: fields.Set{
 				"metadata.name":      config.VpcCniConfigMapName,
 				"metadata.namespace": config.KubeSystemNamespace,
@@ -217,7 +218,7 @@ func main() {
 			}.AsSelector(),
 			},
 		},
-	})
+	}
 
 	leaderElectionSource := resourcelock.ConfigMapsLeasesResourceLock
 	if leaseOnly {
@@ -237,7 +238,7 @@ func main() {
 		LeaderElectionNamespace:    config.LeaderElectionNamespace,
 		LeaderElectionResourceLock: leaderElectionSource,
 		HealthProbeBindAddress:     ":61779", // the liveness endpoint is default to "/healthz"
-		NewCache:                   newCache,
+		Cache:                      newCache,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -381,19 +382,18 @@ func main() {
 	webhookServer := mgr.GetWebhookServer()
 
 	setupLog.Info("registering webhooks to the webhook server")
-	podMutationWebhook := webhookcore.NewPodMutationWebHook(
+	podMutationWebhook := webhookcore.NewPodMutationWebHook(scheme,
 		sgpAPI, ctrl.Log.WithName("resource mutating webhook"), controllerConditions, healthzHandler)
 	webhookServer.Register("/mutate-v1-pod", &webhook.Admission{
 		Handler: podMutationWebhook,
 	})
 
-	nodeValidateWebhook := webhookcore.NewNodeUpdateWebhook(
-		controllerConditions, ctrl.Log.WithName("node validating webhook"), healthzHandler)
+	nodeValidateWebhook := webhookcore.NewNodeUpdateWebhook(scheme, controllerConditions, ctrl.Log.WithName("node validating webhook"), healthzHandler)
 	webhookServer.Register("/validate-v1-node", &webhook.Admission{
 		Handler: nodeValidateWebhook})
 
 	// Validating webhook for pod.
-	annotationValidator := webhookcore.NewAnnotationValidator(
+	annotationValidator := webhookcore.NewAnnotationValidator(scheme,
 		controllerConditions, ctrl.Log.WithName("annotation validating webhook"), healthzHandler)
 	webhookServer.Register("/validate-v1-pod", &webhook.Admission{
 		Handler: annotationValidator})

@@ -10,6 +10,7 @@ import (
 	rcHealthz "github.com/aws/amazon-vpc-resource-controller-k8s/pkg/healthz"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -21,10 +22,11 @@ type NodeUpdateWebhook struct {
 	Checker   healthz.Checker
 }
 
-func NewNodeUpdateWebhook(condition condition.Conditions, log logr.Logger, healthzHandler *rcHealthz.HealthzHandler) *NodeUpdateWebhook {
+func NewNodeUpdateWebhook(scheme *runtime.Scheme, condition condition.Conditions, log logr.Logger, healthzHandler *rcHealthz.HealthzHandler) *NodeUpdateWebhook {
 	nodeUpdateWebhook := &NodeUpdateWebhook{
 		Condition: condition,
 		Log:       log,
+		decoder:   admission.NewDecoder(scheme),
 	}
 
 	// add health check on subpath for node validation webhook
@@ -91,10 +93,4 @@ func (a *NodeUpdateWebhook) Handle(_ context.Context, req admission.Request) adm
 
 	// If all validation check succeed, allow admission
 	return admission.Allowed("")
-}
-
-// InjectDecoder injects the decoder.
-func (a *NodeUpdateWebhook) InjectDecoder(d *admission.Decoder) error {
-	a.decoder = d
-	return nil
 }
